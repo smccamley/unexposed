@@ -5,7 +5,7 @@ This file is generated from `package.json` and `src/args.mjs`.
 ## Package
 
 - Package: `@unexposed/image-gen`
-- Version: `0.1.0`
+- Version: `0.1.1`
 - Node: `>=24`
 - CLI: `unexposed-image-gen`
 
