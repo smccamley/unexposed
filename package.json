@@ -4,6 +4,7 @@
   "description": "Thin Unexposed image generation client for sealed task submission.",
   "type": "module",
   "license": "UNLICENSED",
+  "homepage": "https://unexposed.ai",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/smccamley/unexposed.git"
