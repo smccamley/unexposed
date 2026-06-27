@@ -37,6 +37,12 @@ jobs:
         id: changes
         run: |
           set -euo pipefail
+          if test "$GITHUB_EVENT_NAME" = "workflow_dispatch"; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           if git log -1 --pretty=%s | grep -q '^Release image-gen '; then
             echo "release=true" >> "$GITHUB_OUTPUT"
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -63,6 +69,7 @@ jobs:
         run: echo "No package files changed."
 
       - name: Prepare release commit
+        id: prepare
         if: ${{ steps.changes.outputs.changed == 'true' && steps.changes.outputs.release != 'true' }}
         env:
           PACKAGE_NAME: ${{ steps.package.outputs.name }}
@@ -84,19 +91,20 @@ jobs:
           git add package.json README.md docs/api.md
           git commit -m "Release image-gen ${version}"
           git push
+          echo "prepared=true" >> "$GITHUB_OUTPUT"
 
       - name: Verify release
-        if: ${{ steps.changes.outputs.release == 'true' }}
+        if: ${{ steps.changes.outputs.release == 'true' || steps.prepare.outputs.prepared == 'true' }}
         run: npm run verify
 
       - name: Check published version
-        if: ${{ steps.changes.outputs.release == 'true' }}
+        if: ${{ steps.changes.outputs.release == 'true' || steps.prepare.outputs.prepared == 'true' }}
         id: published
-        env:
-          PACKAGE_NAME: ${{ steps.package.outputs.name }}
-          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
         run: |
           set -euo pipefail
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
           if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
             echo "${PACKAGE_NAME}@${PACKAGE_VERSION} is already published."
@@ -106,7 +114,7 @@ jobs:
           fi
 
       - name: Publish package
-        if: ${{ steps.changes.outputs.release == 'true' && steps.published.outputs.publish == 'true' }}
+        if: ${{ (steps.changes.outputs.release == 'true' || steps.prepare.outputs.prepared == 'true') && steps.published.outputs.publish == 'true' }}
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
@@ -121,9 +129,9 @@ jobs:
           npm publish --access public --provenance
 
       - name: Tag release
-        if: ${{ steps.changes.outputs.release == 'true' && steps.published.outputs.publish == 'true' }}
+        if: ${{ (steps.changes.outputs.release == 'true' || steps.prepare.outputs.prepared == 'true') && steps.published.outputs.publish == 'true' }}
         env:
-          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+          PACKAGE_VERSION: ${{ steps.published.outputs.version }}
         run: |
           set -euo pipefail
           tag="image-gen-v${PACKAGE_VERSION}"
