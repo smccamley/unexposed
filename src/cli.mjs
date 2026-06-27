@@ -1,0 +1,108 @@
+#!/usr/bin/env node
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import process from "node:process";
+import { pathToFileURL } from "node:url";
+import { parseArgs, usage } from "./args.mjs";
+import { sealImageGenerationRequest } from "./sealed-request.mjs";
+import { submitImageGenerationTask, TaskManagerError } from "./task-manager-client.mjs";
+
+const contentTypeFromPath = (filePath) => {
+  const extension = path.extname(filePath).toLowerCase();
+  if (extension === ".png") return "image/png";
+  if (extension === ".jpg" || extension === ".jpeg") return "image/jpeg";
+  if (extension === ".webp") return "image/webp";
+  return "application/octet-stream";
+};
+
+const readSourceImage = async (sourcePath) => {
+  if (!sourcePath) return null;
+  const resolvedPath = path.resolve(sourcePath);
+  const bytes = await readFile(resolvedPath);
+
+  return {
+    filename: path.basename(resolvedPath),
+    contentType: contentTypeFromPath(resolvedPath),
+    bytesBase64: bytes.toString("base64"),
+  };
+};
+
+const buildPayload = async (options) => {
+  const source = await readSourceImage(options.source);
+
+  return {
+    tool: "image-gen",
+    model: options.model,
+    prompt: options.prompt,
+    ...(source ? { source } : {}),
+  };
+};
+
+const printBody = (stderr, body) => {
+  if (!body) return;
+  if (typeof body === "string") {
+    stderr.write(`${body}\n`);
+    return;
+  }
+  stderr.write(`${JSON.stringify(body, null, 2)}\n`);
+};
+
+export const runCli = async (
+  argv = process.argv.slice(2),
+  env = process.env,
+  io = { stdout: process.stdout, stderr: process.stderr, fetchImpl: fetch },
+) => {
+  try {
+    const { help, options } = parseArgs(argv, env);
+    if (help) {
+      io.stdout.write(usage());
+      return 0;
+    }
+    if (!options.prompt) {
+      io.stderr.write("Missing prompt.\n\n");
+      io.stderr.write(usage());
+      return 1;
+    }
+    if (!options.accessToken) {
+      io.stderr.write(
+        "Missing access token. Set UNEXPOSED_ACCESS_TOKEN or pass --access-token.\n",
+      );
+      return 1;
+    }
+
+    const payload = await buildPayload(options);
+    const { sealedRequest } = await sealImageGenerationRequest(payload);
+    const task = {
+      tool: "image-gen",
+      model: options.model,
+      sealedRequest,
+    };
+    const result = await submitImageGenerationTask({
+      accessToken: options.accessToken,
+      apiUrl: options.apiUrl,
+      fetchImpl: io.fetchImpl,
+      task,
+    });
+
+    io.stdout.write("Image generation task accepted.\n");
+    if (result) io.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return 0;
+  } catch (error) {
+    if (error instanceof TaskManagerError) {
+      io.stderr.write("Unexposed image generation task failed.\n");
+      io.stderr.write(`${error.message}\n`);
+      printBody(io.stderr, error.body);
+      io.stderr.write(
+        "This is expected while Unexposed task and billing infrastructure is not deployed.\n",
+      );
+      return 1;
+    }
+
+    io.stderr.write(`${error.message}\n`);
+    return 1;
+  }
+};
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  process.exit(await runCli());
+}

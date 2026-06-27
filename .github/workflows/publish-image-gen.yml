@@ -1,0 +1,131 @@
+name: Publish Image Gen
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Prepare or Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Read package metadata
+        id: package
+        run: |
+          set -euo pipefail
+          echo "name=$(node -p "require('./package.json').name")" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Check package changes
+        id: changes
+        run: |
+          set -euo pipefail
+          if git log -1 --pretty=%s | grep -q '^Release image-gen '; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! git rev-parse HEAD^ >/dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only HEAD^ HEAD -- . | grep -v '^.github/' || true)"
+          if test -n "$changed_files"; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop when only workflow files changed
+        if: ${{ steps.changes.outputs.changed != 'true' }}
+        run: echo "No package files changed."
+
+      - name: Prepare release commit
+        if: ${{ steps.changes.outputs.changed == 'true' && steps.changes.outputs.release != 'true' }}
+        env:
+          PACKAGE_NAME: ${{ steps.package.outputs.name }}
+        run: |
+          set -euo pipefail
+          npm version patch --no-git-tag-version
+
+          version="$(node -p "require('./package.json').version")"
+          while npm view "${PACKAGE_NAME}@${version}" version >/dev/null 2>&1; do
+            npm version patch --no-git-tag-version
+            version="$(node -p "require('./package.json').version")"
+          done
+
+          npm run docs:update
+          npm run verify
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json README.md docs/api.md
+          git commit -m "Release image-gen ${version}"
+          git push
+
+      - name: Verify release
+        if: ${{ steps.changes.outputs.release == 'true' }}
+        run: npm run verify
+
+      - name: Check published version
+        if: ${{ steps.changes.outputs.release == 'true' }}
+        id: published
+        env:
+          PACKAGE_NAME: ${{ steps.package.outputs.name }}
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          set -euo pipefail
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "${PACKAGE_NAME}@${PACKAGE_VERSION} is already published."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "${PACKAGE_NAME}@${PACKAGE_VERSION} is not published yet."
+          fi
+
+      - name: Publish package
+        if: ${{ steps.changes.outputs.release == 'true' && steps.published.outputs.publish == 'true' }}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          NODE_AUTH_TOKEN="${NPM_TOKEN:-${NPM_AUTH_TOKEN:-}}"
+          if test -z "$NODE_AUTH_TOKEN"; then
+            echo "Missing NPM_TOKEN or NPM_AUTH_TOKEN repository secret." >&2
+            exit 1
+          fi
+          export NODE_AUTH_TOKEN
+          npm publish --access public --provenance
+
+      - name: Tag release
+        if: ${{ steps.changes.outputs.release == 'true' && steps.published.outputs.publish == 'true' }}
+        env:
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          set -euo pipefail
+          tag="image-gen-v${PACKAGE_VERSION}"
+          git tag "$tag"
+          git push origin "$tag"

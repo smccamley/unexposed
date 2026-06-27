@@ -1,0 +1,39 @@
+{
+  "name": "@unexposed/image-gen",
+  "version": "0.1.0",
+  "description": "Thin Unexposed image generation client for sealed task submission.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smccamley/unexposed.git"
+  },
+  "bin": {
+    "unexposed-image-gen": "src/cli.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./sealed-request": "./src/sealed-request.mjs",
+    "./task-manager-client": "./src/task-manager-client.mjs"
+  },
+  "files": [
+    "README.md",
+    "docs",
+    "media",
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "docs:update": "node scripts/update-docs.mjs",
+    "docs:check": "node scripts/update-docs.mjs --check",
+    "verify": "npm test && npm run docs:check && npm run pack:dry-run",
+    "build": "node scripts/build-artifact.mjs",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
