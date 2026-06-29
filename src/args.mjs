@@ -2,18 +2,19 @@ export const DEFAULT_API_URL = "https://api.unexposed.ai";
 
 export const usage = () => `Usage:
   unexposed-image-gen "prompt" [options]
-  npx @unexposed/image-gen "prompt" --access-token ux_...
+  npx @unexposed/image-gen "prompt" --accessToken ux_...
 
 Options:
-  --access-token <token>  Account token for access and billing checks.
+  --accessToken <token>   Access Token for access and billing checks.
+  --token <token>         Alias for --accessToken.
   --api-url <url>         Task Manager base URL. Default: ${DEFAULT_API_URL}
-  --model <model>         Image model identifier. Default: default
+  --model <model>         Image model identifier. Default: flux2_dev
   --source <path>         Optional source image to encrypt with the prompt.
-  --output <path>         Future local output path. Not sent to the Task Manager.
+  --output <path>         Local output path. Not sent to the Task Manager.
   --help                  Show this help text.
 
 Environment:
-  UNEXPOSED_ACCESS_TOKEN  Account token used when --access-token is omitted.
+  UNEXPOSED_ACCESS_TOKEN  Access Token used when --accessToken is omitted.
   UNEXPOSED_API_URL       Task Manager URL used when --api-url is omitted.
 `;
 
@@ -29,7 +30,7 @@ export const parseArgs = (argv, env = {}) => {
   const options = {
     accessToken: env.UNEXPOSED_ACCESS_TOKEN ?? "",
     apiUrl: env.UNEXPOSED_API_URL ?? DEFAULT_API_URL,
-    model: "default",
+    model: "flux2_dev",
     output: null,
     source: null,
   };
@@ -39,11 +40,13 @@ export const parseArgs = (argv, env = {}) => {
     const arg = argv[index];
 
     if (arg === "--help" || arg === "-h") return { help: true, options };
-    if (arg === "--access-token") {
+    if (arg === "--accessToken" || arg === "--token") {
       options.accessToken = readOptionValue(argv, index, arg);
       index += 1;
-    } else if (arg.startsWith("--access-token=")) {
-      options.accessToken = arg.slice("--access-token=".length);
+    } else if (arg.startsWith("--accessToken=")) {
+      options.accessToken = arg.slice("--accessToken=".length);
+    } else if (arg.startsWith("--token=")) {
+      options.accessToken = arg.slice("--token=".length);
     } else if (arg === "--api-url") {
       options.apiUrl = readOptionValue(argv, index, arg);
       index += 1;

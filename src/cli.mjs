@@ -4,8 +4,9 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { parseArgs, usage } from "./args.mjs";
-import { sealImageGenerationRequest } from "./sealed-request.mjs";
-import { submitImageGenerationTask, TaskManagerError } from "./task-manager-client.mjs";
+import { generateImage } from "./index.mjs";
+import { TaskManagerError } from "./task-manager-client.mjs";
+import { GenerationSessionError } from "./generation-session-client.mjs";
 
 const contentTypeFromPath = (filePath) => {
   const extension = path.extname(filePath).toLowerCase();
@@ -34,7 +35,7 @@ const buildPayload = async (options) => {
     tool: "image-gen",
     model: options.model,
     prompt: options.prompt,
-    ...(source ? { source } : {}),
+    ...(source ? { sources: [source] } : {}),
   };
 };
 
@@ -65,36 +66,35 @@ export const runCli = async (
     }
     if (!options.accessToken) {
       io.stderr.write(
-        "Missing access token. Set UNEXPOSED_ACCESS_TOKEN or pass --access-token.\n",
+        "Missing access token. Set UNEXPOSED_ACCESS_TOKEN or pass --accessToken.\n",
       );
       return 1;
     }
 
     const payload = await buildPayload(options);
-    const { sealedRequest } = await sealImageGenerationRequest(payload);
-    const task = {
-      tool: "image-gen",
-      model: options.model,
-      sealedRequest,
-    };
-    const result = await submitImageGenerationTask({
+    const image = await generateImage({
       accessToken: options.accessToken,
       apiUrl: options.apiUrl,
       fetchImpl: io.fetchImpl,
-      task,
+      model: options.model,
+      output: options.output ?? ".",
+      prompt: payload.prompt,
+      sources: payload.sources,
     });
 
-    io.stdout.write("Image generation task accepted.\n");
-    if (result) io.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    io.stdout.write(`Saved ${image.path}\n`);
     return 0;
   } catch (error) {
     if (error instanceof TaskManagerError) {
       io.stderr.write("Unexposed image generation task failed.\n");
       io.stderr.write(`${error.message}\n`);
       printBody(io.stderr, error.body);
-      io.stderr.write(
-        "This is expected while Unexposed task and billing infrastructure is not deployed.\n",
-      );
+      return 1;
+    }
+    if (error instanceof GenerationSessionError) {
+      io.stderr.write("Unexposed image generation failed.\n");
+      io.stderr.write(`${error.message}\n`);
+      if (error.requestId) io.stderr.write(`Request: ${error.requestId}\n`);
       return 1;
     }
 

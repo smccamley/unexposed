@@ -8,7 +8,7 @@ import {
 test("sealImageGenerationRequest hides prompt and can be opened with generation private key", async () => {
   const payload = {
     tool: "image-gen",
-    model: "default",
+    model: "flux2_dev",
     prompt: "private product photo prompt",
   };
   const { sealedRequest, generationPrivateKey } =

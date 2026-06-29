@@ -19,7 +19,7 @@ test("runCli submits sealed task without prompt or local output path", async () 
   const code = await runCli(
     [
       "secret prompt",
-      "--access-token",
+      "--token",
       "ux_test",
       "--api-url",
       "http://localhost:8787",

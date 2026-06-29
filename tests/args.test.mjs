@@ -7,7 +7,7 @@ test("parseArgs reads prompt and defaults", () => {
 
   assert.equal(parsed.help, false);
   assert.equal(parsed.options.prompt, "make a watch");
-  assert.equal(parsed.options.model, "default");
+  assert.equal(parsed.options.model, "flux2_dev");
   assert.equal(parsed.options.apiUrl, DEFAULT_API_URL);
 });
 
@@ -25,7 +25,7 @@ test("parseArgs lets flags override env", () => {
   const parsed = parseArgs(
     [
       "prompt",
-      "--access-token",
+      "--accessToken",
       "ux_flag",
       "--api-url=http://localhost:9000",
       "--model",
@@ -45,4 +45,10 @@ test("parseArgs lets flags override env", () => {
   assert.equal(parsed.options.model, "flux");
   assert.equal(parsed.options.source, "./input.png");
   assert.equal(parsed.options.output, "./out.png");
+});
+
+test("parseArgs keeps --token as an access token alias", () => {
+  const parsed = parseArgs(["prompt", "--token=ux_alias"], {});
+
+  assert.equal(parsed.options.accessToken, "ux_alias");
 });

@@ -1,0 +1,76 @@
+{
+  "defaultModel": "flux2_dev",
+  "limits": {
+    "sourceImageBytes": 52428800,
+    "generatedImageBytes": 52428800,
+    "batchSubmissionBytes": 524288000
+  },
+  "models": [
+    {
+      "id": "flux2_dev",
+      "name": "FLUX.2 Dev",
+      "prompt": "required",
+      "sources": "optional",
+      "examples": {
+        "prompt": "product photo of a watch"
+      }
+    },
+    {
+      "id": "qwen",
+      "name": "Qwen-Image-Edit-2511",
+      "prompt": "required",
+      "sources": "required",
+      "examples": {
+        "prompt": "turn this into a cinematic product photo",
+        "sources": ["./input.png"]
+      }
+    },
+    {
+      "id": "krea2_turbo",
+      "name": "Krea 2 Turbo",
+      "prompt": "required",
+      "sources": "none",
+      "examples": {
+        "prompt": "portrait by a rain-streaked window"
+      }
+    },
+    {
+      "id": "krea2_raw",
+      "name": "Krea 2 RAW",
+      "prompt": "required",
+      "sources": "none",
+      "examples": {
+        "prompt": "macro product photo of a mechanical watch"
+      }
+    },
+    {
+      "id": "chroma",
+      "name": "Chroma1-HD",
+      "prompt": "required",
+      "sources": "none",
+      "examples": {
+        "prompt": "clean architectural product render"
+      }
+    },
+    {
+      "id": "bria-bg-remover",
+      "name": "Background Remover",
+      "prompt": "optional",
+      "sources": "required",
+      "examples": {
+        "prompt": "remove the background",
+        "sources": ["./input.png"]
+      }
+    },
+    {
+      "id": "upscaler",
+      "name": "Upscaler",
+      "prompt": "optional",
+      "sources": "required",
+      "examples": {
+        "prompt": "upscale this image",
+        "sources": ["./input.png"]
+      }
+    }
+  ]
+}

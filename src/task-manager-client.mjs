@@ -48,3 +48,30 @@ export const submitImageGenerationTask = async ({
 
   return body;
 };
+
+export const submitImageGenerationTasks = async ({
+  accessToken,
+  apiUrl,
+  fetchImpl = fetch,
+  tasks,
+}) => {
+  const response = await fetchImpl(taskEndpoint(apiUrl), {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ tasks }),
+  });
+  const body = parseResponseBody(await response.text());
+
+  if (!response.ok) {
+    throw new TaskManagerError({
+      status: response.status,
+      statusText: response.statusText,
+      body,
+    });
+  }
+
+  return body;
+};
