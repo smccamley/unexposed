@@ -1,6 +1,6 @@
 {
   "name": "@unexposed/image-gen",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Thin Unexposed image generation client for sealed task submission.",
   "type": "module",
   "license": "UNLICENSED",

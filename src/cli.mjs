@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { parseArgs, usage } from "./args.mjs";
 import { generateImage } from "./index.mjs";
 import { TaskManagerError } from "./task-manager-client.mjs";
@@ -103,6 +103,16 @@ export const runCli = async (
   }
 };
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+const realPathOrResolvedPath = async (filePath) =>
+  realpath(filePath).catch(() => path.resolve(filePath));
+
+const isDirectCliRun = async () => {
+  if (!process.argv[1]) return false;
+  const modulePath = await realPathOrResolvedPath(fileURLToPath(import.meta.url));
+  const runPath = await realPathOrResolvedPath(process.argv[1]);
+  return modulePath === runPath;
+};
+
+if (await isDirectCliRun()) {
   process.exit(await runCli());
 }
