@@ -21,6 +21,13 @@ export {
 } from "./task-manager-client.mjs";
 
 const MAX_SOURCE_IMAGE_BYTES = 50 * 1024 * 1024;
+const IMAGE_MODELS = new Set([
+  "flux2_dev",
+  "qwen",
+  "krea2_turbo",
+  "krea2_raw",
+  "chroma",
+]);
 
 const contentTypeFromPath = (filePath) => {
   const extension = path.extname(filePath).toLowerCase();
@@ -76,6 +83,7 @@ export const createSealedImageGenerationTask = async ({
   source = null,
   sources = null,
 }) => {
+  if (!IMAGE_MODELS.has(model)) throw new Error("model is not supported by Unexposed");
   if (!prompt) throw new Error("prompt is required");
   const normalizedSources = await normalizeSources({ source, sources });
 

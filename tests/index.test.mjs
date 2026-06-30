@@ -86,6 +86,16 @@ test("createSealedImageGenerationTask seals source image paths as sources", asyn
   }
 });
 
+test("createSealedImageGenerationTask rejects models outside the Unexposed boundary", async () => {
+  await assert.rejects(
+    createSealedImageGenerationTask({
+      model: "upscaler",
+      prompt: "private prompt",
+    }),
+    /model is not supported by Unexposed/,
+  );
+});
+
 test("generateImages submits one batch and yields images", async () => {
   const requests = [];
   const results = [];

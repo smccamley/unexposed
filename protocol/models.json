@@ -51,26 +51,6 @@
       "examples": {
         "prompt": "clean architectural product render"
       }
-    },
-    {
-      "id": "bria-bg-remover",
-      "name": "Background Remover",
-      "prompt": "optional",
-      "sources": "required",
-      "examples": {
-        "prompt": "remove the background",
-        "sources": ["./input.png"]
-      }
-    },
-    {
-      "id": "upscaler",
-      "name": "Upscaler",
-      "prompt": "optional",
-      "sources": "required",
-      "examples": {
-        "prompt": "upscale this image",
-        "sources": ["./input.png"]
-      }
     }
   ]
 }

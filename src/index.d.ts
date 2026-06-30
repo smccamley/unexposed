@@ -7,9 +7,7 @@ export type PromptRequiredImageModel =
   | "krea2_raw"
   | "chroma";
 
-export type PromptlessImageModel = "bria-bg-remover" | "upscaler";
-
-export type ImageModel = PromptRequiredImageModel | PromptlessImageModel;
+export type ImageModel = PromptRequiredImageModel;
 
 export type ImageSource =
   | string
@@ -54,16 +52,10 @@ export interface GenerateImagesBaseOptions {
 export type GenerateImageOptions =
   & GenerateImageBaseOptions
   & ImageSourceInput
-  & (
-    | {
-        model?: PromptRequiredImageModel;
-        prompt: string;
-      }
-    | {
-        model: PromptlessImageModel;
-        prompt?: string;
-      }
-  );
+  & {
+    model?: ImageModel;
+    prompt: string;
+  };
 
 export class GeneratedImage {
   bytes: Uint8Array;
