@@ -5,7 +5,7 @@ This file is generated from `package.json` and `src/args.mjs`.
 ## Package
 
 - Package: `@unexposed/image-gen`
-- Version: `0.1.5`
+- Version: `0.1.6`
 - Node: `>=24`
 - CLI: `unexposed-image-gen`
 
@@ -40,8 +40,9 @@ Options:
 - `prompt`: prompt to seal. Required unless the model catalogue marks the model promptless.
 - `apiUrl`: Task Manager base URL. Defaults to `DEFAULT_API_URL`.
 - `model`: allowed image model identifier. Defaults to `flux2_dev`.
+- `workflow`: Account-private Workflow slug. Use instead of `model`.
 - `source`: optional source image path or object.
-- `sources`: optional source image paths or objects.
+- `sources`: optional source image paths or objects. Workflow source images bind by order.
 - `output`: optional path to save while generating.
 - `onProgress`: optional content-blind progress callback.
 - `fetchImpl`: optional fetch-compatible function for tests or custom runtimes.
@@ -78,7 +79,9 @@ Options:
   --token <token>         Alias for --accessToken.
   --api-url <url>         Task Manager base URL. Default: https://api.unexposed.ai
   --model <model>         Image model identifier. Default: flux2_dev
+  --workflow <slug>       Account-private Workflow slug.
   --source <path>         Optional source image to encrypt with the prompt.
+                           Repeat for Workflows with multiple image inputs.
   --output <path>         Local output path. Not sent to the Task Manager.
   --help                  Show this help text.
 

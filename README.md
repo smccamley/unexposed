@@ -54,6 +54,10 @@ for await (const result of generateImages(
 unexposed-image-gen "studio product photo of a watch" --model flux2_dev --output ./watch.png --accessToken ux_...AIax
 ```
 
+```sh
+unexposed-image-gen "studio product photo of a watch" --workflow cool-workflow --source ./img1.png --accessToken ux_...AIax
+```
+
 ## API
 
 ```js
@@ -66,7 +70,7 @@ import {
 } from "@unexposed/image-gen";
 ```
 
-`generateImage(options)` seals a prompt, submits the task, streams the Generated Image from the Generation Session, and returns a `GeneratedImage`. Pass `accessToken`, `prompt`, and optionally `apiUrl`, `model`, `source`, `sources`, `output`, `onProgress`, or `fetchImpl`.
+`generateImage(options)` seals a prompt, submits the task, streams the Generated Image from the Generation Session, and returns a `GeneratedImage`. Pass `accessToken`, `prompt`, and either `model` or `workflow`. You may also pass `apiUrl`, `source`, `sources`, `output`, `onProgress`, or `fetchImpl`.
 
 `generateImages(images, options)` submits a batch and returns an async iterator. Each result is either `{ ok: true, image }` or `{ ok: false, error }`. The SDK keeps scheduling internal and does not expose a concurrency setting.
 
@@ -90,7 +94,9 @@ Options:
   --token <token>         Alias for --accessToken.
   --api-url <url>         Task Manager base URL. Default: https://api.unexposed.ai
   --model <model>         Image model identifier. Default: flux2_dev
+  --workflow <slug>       Account-private Workflow slug.
   --source <path>         Optional source image to encrypt with the prompt.
+                           Repeat for Workflows with multiple image inputs.
   --output <path>         Local output path. Not sent to the Task Manager.
   --help                  Show this help text.
 
@@ -103,6 +109,6 @@ Environment:
 
 ## How It Works
 
-The client creates a one-use Generation Key Pair, seals the prompt and optional source images with a sender key, and submits only the encrypted task payload. The Task Manager receives the Access Token, model name, and sealed request. It does not receive the Generation Key Pair private key or decrypted prompt/source content. The SDK sends the private key directly to the Generation Session, which streams image bytes back to the SDK.
+The client creates a one-use Generation Key Pair, seals the prompt and optional source images with a sender key, and submits only the encrypted task payload. The Task Manager receives the Access Token, model name or Workflow slug, and sealed request. It does not receive the Generation Key Pair private key or decrypted prompt/source content. The SDK sends the private key directly to the Generation Session, which streams image bytes back to the SDK.
 
 More detail lives in [docs/api.md](docs/api.md).

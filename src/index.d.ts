@@ -26,6 +26,7 @@ export interface GenerationProgressEvent {
   stage: string;
   requestId?: string;
   model?: ImageModel;
+  workflow?: string;
   creditsReserved?: number;
   creditsCharged?: number;
   code?: string;
@@ -52,10 +53,18 @@ export interface GenerateImagesBaseOptions {
 export type GenerateImageOptions =
   & GenerateImageBaseOptions
   & ImageSourceInput
-  & {
-    model?: ImageModel;
-    prompt: string;
-  };
+  & (
+    | {
+        model?: ImageModel;
+        prompt: string;
+        workflow?: never;
+      }
+    | {
+        model?: never;
+        prompt: string;
+        workflow: string;
+      }
+  );
 
 export class GeneratedImage {
   bytes: Uint8Array;
@@ -89,14 +98,16 @@ export type GenerateImagesResult =
       ok: true;
       image: GeneratedImage;
       index: number;
-      model: ImageModel;
+      model: ImageModel | string;
+      workflow?: string | null;
       requestId: string;
     }
   | {
       ok: false;
       error: unknown;
       index: number;
-      model: ImageModel;
+      model: ImageModel | string;
+      workflow?: string | null;
       requestId: string | null;
     };
 
@@ -109,7 +120,8 @@ export function createSealedImageGenerationTask(options: GenerateImageOptions): 
   generationPrivateKey: CryptoKey;
   task: {
     tool: "image-gen";
-    model: ImageModel;
+    model?: ImageModel;
+    workflow?: string;
     sealedRequest: unknown;
   };
 }>;
@@ -118,7 +130,8 @@ export function createSealedImageGenerationTasks(images: GenerateImageOptions[])
   generationPrivateKey: CryptoKey;
   task: {
     tool: "image-gen";
-    model: ImageModel;
+    model?: ImageModel;
+    workflow?: string;
     sealedRequest: unknown;
   };
 }>>;

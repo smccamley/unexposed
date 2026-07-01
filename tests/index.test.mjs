@@ -86,6 +86,40 @@ test("createSealedImageGenerationTask seals source image paths as sources", asyn
   }
 });
 
+test("createSealedImageGenerationTask creates a sealed Workflow task", async () => {
+  const { generationPrivateKey, task } = await createSealedImageGenerationTask({
+    workflow: "cool-workflow",
+    prompt: "private prompt",
+  });
+  const serializedTask = JSON.stringify(task);
+
+  assert.equal(task.tool, "image-gen");
+  assert.equal(task.workflow, "cool-workflow");
+  assert.equal(task.model, undefined);
+  assert.equal(serializedTask.includes("private prompt"), false);
+
+  const opened = await openImageGenerationRequest({
+    sealedRequest: task.sealedRequest,
+    generationPrivateKey,
+  });
+
+  assert.deepEqual(opened, {
+    tool: "image-gen",
+    workflow: "cool-workflow",
+    prompt: "private prompt",
+  });
+});
+
+test("createSealedImageGenerationTask rejects invalid Workflow slugs", async () => {
+  await assert.rejects(
+    createSealedImageGenerationTask({
+      workflow: "Bad Workflow",
+      prompt: "private prompt",
+    }),
+    /workflow must be a 3-64 character lowercase slug/,
+  );
+});
+
 test("createSealedImageGenerationTask rejects models outside the Unexposed boundary", async () => {
   await assert.rejects(
     createSealedImageGenerationTask({

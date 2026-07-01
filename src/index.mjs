@@ -28,6 +28,7 @@ const IMAGE_MODELS = new Set([
   "krea2_raw",
   "chroma",
 ]);
+const WORKFLOW_SLUG = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
 
 const contentTypeFromPath = (filePath) => {
   const extension = path.extname(filePath).toLowerCase();
@@ -82,11 +83,39 @@ export const createSealedImageGenerationTask = async ({
   prompt,
   source = null,
   sources = null,
+  workflow = null,
 }) => {
-  if (!IMAGE_MODELS.has(model)) throw new Error("model is not supported by Unexposed");
   if (!prompt) throw new Error("prompt is required");
   const normalizedSources = await normalizeSources({ source, sources });
 
+  if (workflow) {
+    if (model !== "flux2_dev") {
+      throw new Error("Use workflow or model, not both");
+    }
+    if (typeof workflow !== "string" || !WORKFLOW_SLUG.test(workflow)) {
+      throw new Error("workflow must be a 3-64 character lowercase slug");
+    }
+
+    const payload = {
+      tool: "image-gen",
+      workflow,
+      prompt,
+      ...(normalizedSources.length ? { sources: normalizedSources } : {}),
+    };
+    const { sealedRequest, generationPrivateKey } =
+      await sealImageGenerationRequest(payload);
+
+    return {
+      generationPrivateKey,
+      task: {
+        tool: "image-gen",
+        workflow,
+        sealedRequest,
+      },
+    };
+  }
+
+  if (!IMAGE_MODELS.has(model)) throw new Error("model is not supported by Unexposed");
   const payload = {
     tool: "image-gen",
     model,
@@ -122,12 +151,14 @@ export const submitSealedImageGenerationTask = async ({
   prompt,
   source = null,
   sources = null,
+  workflow = null,
 }) => {
   const { generationPrivateKey, task } = await createSealedImageGenerationTask({
     model,
     prompt,
     source,
     sources,
+    workflow,
   });
   const result = await submitImageGenerationTask({
     accessToken,
@@ -155,12 +186,14 @@ export const generateImage = async ({
   prompt,
   source = null,
   sources = null,
+  workflow = null,
 }) => {
   const { generationPrivateKey, task } = await createSealedImageGenerationTask({
     model,
     prompt,
     source,
     sources,
+    workflow,
   });
   const result = await submitImageGenerationTask({
     accessToken: accessTokenFromOptions(accessToken),
@@ -268,17 +301,20 @@ export async function* generateImages(images, options = {}) {
     }
 
     const image = normalizedImages[index];
-    const model = session.model ?? image.model ?? "flux2_dev";
-    const group = groupsByModel.get(model) ?? [];
+    const model = session.model ?? image.model ?? null;
+    const workflow = session.workflow ?? image.workflow ?? null;
+    const groupKey = workflow ? `workflow:${workflow}` : (model ?? "flux2_dev");
+    const group = groupsByModel.get(groupKey) ?? [];
     group.push({
       ...image,
       generationPrivateKey: sealedTasks[index].generationPrivateKey,
-      model,
+      model: model ?? groupKey,
       requestId: session.requestId,
       sessionToken: session.sessionToken,
       sessionUrl: session.sessionUrl,
+      workflow,
     });
-    groupsByModel.set(model, group);
+    groupsByModel.set(groupKey, group);
   }
 
   yield* mergeModelGroups([...groupsByModel.values()]);

@@ -44,6 +44,7 @@ test("parseArgs lets flags override env", () => {
   assert.equal(parsed.options.apiUrl, "http://localhost:9000");
   assert.equal(parsed.options.model, "flux");
   assert.equal(parsed.options.source, "./input.png");
+  assert.deepEqual(parsed.options.sources, ["./input.png"]);
   assert.equal(parsed.options.output, "./out.png");
 });
 
@@ -51,4 +52,22 @@ test("parseArgs keeps --token as an access token alias", () => {
   const parsed = parseArgs(["prompt", "--token=ux_alias"], {});
 
   assert.equal(parsed.options.accessToken, "ux_alias");
+});
+
+test("parseArgs reads workflow and repeated sources", () => {
+  const parsed = parseArgs(
+    [
+      "prompt",
+      "--workflow",
+      "cool-workflow",
+      "--source",
+      "./img1.png",
+      "--source=./img2.png",
+    ],
+    {},
+  );
+
+  assert.equal(parsed.options.workflow, "cool-workflow");
+  assert.equal(parsed.options.source, "./img1.png");
+  assert.deepEqual(parsed.options.sources, ["./img1.png", "./img2.png"]);
 });

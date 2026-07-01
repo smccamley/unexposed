@@ -74,6 +74,10 @@ for await (const result of generateImages(
 ${command} "studio product photo of a watch" --model flux2_dev --output ./watch.png --accessToken ux_...AIax
 \`\`\`
 
+\`\`\`sh
+${command} "studio product photo of a watch" --workflow cool-workflow --source ./img1.png --accessToken ux_...AIax
+\`\`\`
+
 ## API
 
 \`\`\`js
@@ -86,7 +90,7 @@ import {
 } from "${packageJson.name}";
 \`\`\`
 
-\`generateImage(options)\` seals a prompt, submits the task, streams the Generated Image from the Generation Session, and returns a \`GeneratedImage\`. Pass \`accessToken\`, \`prompt\`, and optionally \`apiUrl\`, \`model\`, \`source\`, \`sources\`, \`output\`, \`onProgress\`, or \`fetchImpl\`.
+\`generateImage(options)\` seals a prompt, submits the task, streams the Generated Image from the Generation Session, and returns a \`GeneratedImage\`. Pass \`accessToken\`, \`prompt\`, and either \`model\` or \`workflow\`. You may also pass \`apiUrl\`, \`source\`, \`sources\`, \`output\`, \`onProgress\`, or \`fetchImpl\`.
 
 \`generateImages(images, options)\` submits a batch and returns an async iterator. Each result is either \`{ ok: true, image }\` or \`{ ok: false, error }\`. The SDK keeps scheduling internal and does not expose a concurrency setting.
 
@@ -108,7 +112,7 @@ ${usage().trim()}
 
 ## How It Works
 
-The client creates a one-use Generation Key Pair, seals the prompt and optional source images with a sender key, and submits only the encrypted task payload. The Task Manager receives the Access Token, model name, and sealed request. It does not receive the Generation Key Pair private key or decrypted prompt/source content. The SDK sends the private key directly to the Generation Session, which streams image bytes back to the SDK.
+The client creates a one-use Generation Key Pair, seals the prompt and optional source images with a sender key, and submits only the encrypted task payload. The Task Manager receives the Access Token, model name or Workflow slug, and sealed request. It does not receive the Generation Key Pair private key or decrypted prompt/source content. The SDK sends the private key directly to the Generation Session, which streams image bytes back to the SDK.
 
 More detail lives in [docs/api.md](docs/api.md).
 `;
@@ -156,8 +160,9 @@ Options:
 - \`prompt\`: prompt to seal. Required unless the model catalogue marks the model promptless.
 - \`apiUrl\`: Task Manager base URL. Defaults to \`DEFAULT_API_URL\`.
 - \`model\`: allowed image model identifier. Defaults to \`flux2_dev\`.
+- \`workflow\`: Account-private Workflow slug. Use instead of \`model\`.
 - \`source\`: optional source image path or object.
-- \`sources\`: optional source image paths or objects.
+- \`sources\`: optional source image paths or objects. Workflow source images bind by order.
 - \`output\`: optional path to save while generating.
 - \`onProgress\`: optional content-blind progress callback.
 - \`fetchImpl\`: optional fetch-compatible function for tests or custom runtimes.

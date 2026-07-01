@@ -9,7 +9,9 @@ Options:
   --token <token>         Alias for --accessToken.
   --api-url <url>         Task Manager base URL. Default: ${DEFAULT_API_URL}
   --model <model>         Image model identifier. Default: flux2_dev
+  --workflow <slug>       Account-private Workflow slug.
   --source <path>         Optional source image to encrypt with the prompt.
+                           Repeat for Workflows with multiple image inputs.
   --output <path>         Local output path. Not sent to the Task Manager.
   --help                  Show this help text.
 
@@ -31,8 +33,11 @@ export const parseArgs = (argv, env = {}) => {
     accessToken: env.UNEXPOSED_ACCESS_TOKEN ?? "",
     apiUrl: env.UNEXPOSED_API_URL ?? DEFAULT_API_URL,
     model: "flux2_dev",
+    modelProvided: false,
     output: null,
     source: null,
+    sources: [],
+    workflow: null,
   };
   const promptParts = [];
 
@@ -54,14 +59,21 @@ export const parseArgs = (argv, env = {}) => {
       options.apiUrl = arg.slice("--api-url=".length);
     } else if (arg === "--model") {
       options.model = readOptionValue(argv, index, arg);
+      options.modelProvided = true;
       index += 1;
     } else if (arg.startsWith("--model=")) {
       options.model = arg.slice("--model=".length);
+      options.modelProvided = true;
+    } else if (arg === "--workflow") {
+      options.workflow = readOptionValue(argv, index, arg);
+      index += 1;
+    } else if (arg.startsWith("--workflow=")) {
+      options.workflow = arg.slice("--workflow=".length);
     } else if (arg === "--source") {
-      options.source = readOptionValue(argv, index, arg);
+      options.sources.push(readOptionValue(argv, index, arg));
       index += 1;
     } else if (arg.startsWith("--source=")) {
-      options.source = arg.slice("--source=".length);
+      options.sources.push(arg.slice("--source=".length));
     } else if (arg === "--output") {
       options.output = readOptionValue(argv, index, arg);
       index += 1;
@@ -78,6 +90,7 @@ export const parseArgs = (argv, env = {}) => {
     help: false,
     options: {
       ...options,
+      source: options.sources[0] ?? null,
       prompt: promptParts.join(" ").trim(),
     },
   };

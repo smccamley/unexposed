@@ -29,13 +29,15 @@ const readSourceImage = async (sourcePath) => {
 };
 
 const buildPayload = async (options) => {
-  const source = await readSourceImage(options.source);
+  const sources = await Promise.all(
+    (options.sources ?? []).map((sourcePath) => readSourceImage(sourcePath)),
+  );
 
   return {
     tool: "image-gen",
-    model: options.model,
+    ...(options.workflow ? { workflow: options.workflow } : { model: options.model }),
     prompt: options.prompt,
-    ...(source ? { sources: [source] } : {}),
+    ...(sources.length ? { sources } : {}),
   };
 };
 
@@ -70,6 +72,10 @@ export const runCli = async (
       );
       return 1;
     }
+    if (options.workflow && options.modelProvided) {
+      io.stderr.write("Use --workflow or --model, not both.\n");
+      return 1;
+    }
 
     const payload = await buildPayload(options);
     const image = await generateImage({
@@ -80,6 +86,7 @@ export const runCli = async (
       output: options.output ?? ".",
       prompt: payload.prompt,
       sources: payload.sources,
+      workflow: options.workflow,
     });
 
     io.stdout.write(`Saved ${image.path}\n`);
